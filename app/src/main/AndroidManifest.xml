@@ -12,6 +12,20 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Taller2PermisosYGPS"
         tools:targetApi="31">
+
+
+        <!-- permite Esto permite acceder a la carpeta de fotos de forma
+        segura y permite compartir la foto con otras aplicaciones
+        como la Cámara. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
         <activity
             android:name=".MainActivity"
             android:exported="true"
