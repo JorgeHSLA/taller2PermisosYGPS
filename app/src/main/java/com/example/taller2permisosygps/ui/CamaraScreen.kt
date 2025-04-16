@@ -47,6 +47,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -119,6 +121,10 @@ fun CameraXScreen() {
         return
     }
 
+
+    // Estado para almacenar la imagen capturada
+    var capturedImage by remember { mutableStateOf<Bitmap?>(null) }
+
     val previewView = remember { PreviewView(context) }
     val imageCapture = remember { ImageCapture.Builder().build() }
     val cameraExecutor = remember { ContextCompat.getMainExecutor(context) }
@@ -148,7 +154,31 @@ fun CameraXScreen() {
             }
         }, cameraExecutor)
     }
+    LaunchedEffect(capturedImage) {
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
+        cameraProviderFuture.addListener({
+            val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
 
+            val preview = androidx.camera.core.Preview.Builder().build().also {
+                it.setSurfaceProvider(previewView.surfaceProvider)
+            }
+
+            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+
+            try {
+                cameraProvider.unbindAll()
+
+                cameraProvider.bindToLifecycle(
+                    lifecycleOwner,
+                    cameraSelector,
+                    preview,
+                    imageCapture
+                )
+            } catch (e: Exception) {
+                Log.e("CameraXScreen", "Error al inicializar CameraX", e)
+            }
+        }, cameraExecutor)
+    }
     fun takePhoto(executor: Executor) {
         val photoFile = File.createTempFile(
             "photo_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(System.currentTimeMillis())}",
@@ -163,8 +193,8 @@ fun CameraXScreen() {
             executor,
             object : ImageCapture.OnImageSavedCallback {
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                    val bitmap = BitmapFactory.decodeFile(photoFile.absolutePath)
-                    saveImageToGallery(context, bitmap)
+                    capturedImage = BitmapFactory.decodeFile(photoFile.absolutePath)
+                    saveImageToGallery(context, capturedImage!!) //se usa !! porque capturedImage puede ser nulo, y al poner esto obligara a que haya algo
                 }
 
                 override fun onError(exc: ImageCaptureException) {
@@ -174,22 +204,31 @@ fun CameraXScreen() {
         )
     }
 
+
     Column(modifier = Modifier.size(width = 250.dp, height = 450.dp),
-        verticalArrangement = Arrangement.SpaceEvenly) { // Use a Column to manage vertical layout
+        verticalArrangement = Arrangement.SpaceBetween) { // Use a Column to manage vertical layout
         Spacer(modifier = Modifier.padding(15.dp))
-        Box(
-            modifier = Modifier
-                .weight(1f) //
-                .fillMaxWidth() //
-                .paddingFromBaseline(30.dp)
-        ) {
-            AndroidView(
-                factory = { previewView },
+        if(capturedImage != null){
+            Image(
+                bitmap = capturedImage!!.asImageBitmap(),
+                contentDescription = null,
                 modifier = Modifier.fillMaxSize()
+                .weight(1f),
             )
+        }else{
+            Box(
+                modifier = Modifier
+                    .weight(1f) //
+                    .fillMaxSize()//
+            ) {
+                AndroidView(
+                    factory = { previewView },
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
         }
 
-        Spacer(modifier = Modifier.padding(15.dp))
+        Spacer(modifier = Modifier.padding(35.dp))
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -197,11 +236,21 @@ fun CameraXScreen() {
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.Bottom
         ) {
-            Button(
-                onClick = { takePhoto(cameraExecutor) },
-            ) {
-                Text(text = "Tomar Foto")
+            if (capturedImage == null) {
+                Button(
+                    onClick = { takePhoto(cameraExecutor) },
+                ) {
+                    Text(text = "Tomar Foto")
+                }
+            }else{
+
+                Button(
+                    onClick = { capturedImage = null },
+                ) {
+                    Text(text = "volver a tomar")
+                }
             }
+
         }
     }
 }
