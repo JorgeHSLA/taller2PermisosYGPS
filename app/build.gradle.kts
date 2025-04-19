@@ -58,7 +58,7 @@ dependencies {
     // Testing Navigation
     androidTestImplementation("androidx.navigation:navigation-testing:$nav_version")
 
-    val camerax_version = "1.2.2"
+    val camerax_version = "1.2.3"
     implementation ("androidx.camera:camera-core:${camerax_version}")
     implementation ("androidx.camera:camera-camera2:${camerax_version}")
     implementation ("androidx.camera:camera-lifecycle:${camerax_version}")
@@ -96,4 +96,9 @@ dependencies {
 
     // Coil
     implementation("io.coil-kt.coil3:coil-compose:3.1.0")
+
+
+    //para el reproductor de video
+    implementation("androidx.media3:media3-exoplayer:1.4.0")
+    implementation("androidx.media3:media3-ui:1.4.0")
 }
